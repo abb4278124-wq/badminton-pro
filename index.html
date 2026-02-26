@@ -30,12 +30,23 @@
             z-index: -1;
         }
 
-        /* 頂部即時行情 */
-        .market-ticker {
-            width: 100%; background: rgba(0, 0, 0, 0.6);
+        /* 頂部羽球資訊跑馬燈 */
+        .badminton-ticker {
+            width: 100%; background: rgba(0, 242, 255, 0.15);
             backdrop-filter: blur(10px); border-bottom: 1px solid var(--neon-blue);
             padding: 8px 0; text-align: center; font-size: 12px;
             font-weight: bold; color: var(--neon-blue); position: sticky; top: 0; z-index: 1000;
+            white-space: nowrap; overflow: hidden;
+        }
+
+        .ticker-content {
+            display: inline-block;
+            animation: marquee 20s linear infinite;
+        }
+
+        @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
         }
 
         .container { width: 100%; max-width: 600px; padding: 12px; box-sizing: border-box; }
@@ -55,12 +66,7 @@
             margin-bottom: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
         }
 
-        /* 響應式網格：手機 1 欄，平板以上 2 欄 */
-        .court-grid { 
-            display: grid; 
-            grid-template-columns: 1fr; 
-            gap: 12px; 
-        }
+        .court-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
         @media (min-width: 480px) { .court-grid { grid-template-columns: 1fr 1fr; } }
 
         .court-box {
@@ -104,7 +110,6 @@
             font-size: 16px; box-sizing: border-box; outline: none;
         }
 
-        /* 表格容器滾動保護 */
         .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
         table { width: 100%; border-collapse: collapse; min-width: 400px; }
         th { color: var(--neon-blue); padding: 10px; border-bottom: 2px solid rgba(0, 242, 255, 0.2); font-size: 13px; }
@@ -116,33 +121,35 @@
 </head>
 <body>
 
-    <div class="market-ticker">
-        💎 ETH: $2,061 USD | 策略建議: DCA 定期定額分批 📈
+    <div class="badminton-ticker">
+        <div class="ticker-content">
+            🏸 2026 專業叮嚀：運動前記得完成 15 分鐘暖身！ 👟 穿著專業羽球鞋可降低 40% 扭傷機率 🛡️ 擊球後請記得多喝水補充電解質 📈 提升勝率建議：DCA 穩定練習法 (Daily Core Activation，每日核心啟動) 
+        </div>
     </div>
 
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h2>🏸 羽球賽事後台</h2>
-            <button onclick="togglePrivacy()" style="background: rgba(255,255,255,0.1); font-size: 11px; padding: 6px 10px; border: 1px solid #444;">🛡️ 隱藏</button>
+            <h2>🏸 羽球指揮官 PRO</h2>
+            <button onclick="togglePrivacy()" style="background: rgba(255,255,255,0.1); font-size: 11px; padding: 6px 10px; border: 1px solid #444;">🛡️ 隱藏設定</button>
         </div>
 
         <div id="countDisplay" class="neon-text" style="text-align: center; margin-bottom: 15px; font-weight: bold; font-size: 13px;">
-            [ SYSTEM ACTIVE: 載入 0 位 ]
+            [ SYSTEM ACTIVE: 載入 0 位選手 ]
         </div>
 
         <div class="card" id="adminSection">
-            <div style="font-weight: bold; margin-bottom: 8px; font-size: 14px;">📥 快速建檔 (姓名-編號, 顏色)</div>
-            <textarea id="batchInput" rows="3" placeholder="阿強-1,紅"></textarea>
+            <div style="font-weight: bold; margin-bottom: 8px; font-size: 14px;">📥 球員快速匯入 (姓名-編號, 顏色)</div>
+            <textarea id="batchInput" rows="3" placeholder="範例：阿強-1,紅 (Enter換行)"></textarea>
             <button onclick="processBatch()" style="width:100%; margin-top:10px;">確認數據導入</button>
         </div>
 
         <div class="card">
-            <button class="btn-main" onclick="generateMatch()">🔥 啟動智能配對</button>
+            <button class="btn-main" onclick="generateMatch()">🔥 啟動智能配對引擎</button>
             <div id="courtDisplay" class="court-grid" style="margin-top:15px;"></div>
         </div>
 
         <div class="card" id="rankSection">
-            <div style="font-weight: bold; margin-bottom: 10px; color: var(--neon-blue); font-size: 15px;">📊 球員數據分析</div>
+            <div style="font-weight: bold; margin-bottom: 10px; color: var(--neon-blue); font-size: 15px;">📊 今日戰績分析</div>
             <div id="rankTableWrapper" class="table-wrapper">
                 <table>
                     <thead>
@@ -151,15 +158,14 @@
                     <tbody id="rankingBody"></tbody>
                 </table>
             </div>
-            <button onclick="clearData()" style="background: transparent; color: #666; margin-top: 25px; font-size: 10px; border: 1px solid #333; width: 100%;">重置系統數據</button>
+            <button onclick="clearData()" style="background: transparent; color: #666; margin-top: 25px; font-size: 10px; border: 1px solid #333; width: 100%;">重置所有球員數據</button>
         </div>
     </div>
 
     <script>
-        // 優先讀取舊版資料，若無則初始化
         let players = JSON.parse(localStorage.getItem('badminton_final_tech_data')) || [];
         const lvlMap = { "藍": 1, "黃": 2, "橘": 3, "紅": 4, "1": 1, "2": 2, "3": 3, "4": 4 };
-        const lvlNames = { 1: "藍", 2: "黃", 3: "橘", 4: "紅" };
+        const lvlNames = { 1: "藍 (初階)", 2: "黃 (中階)", 3: "橘 (高階)", 4: "紅 (專業)" };
 
         window.onload = render;
 
@@ -188,7 +194,7 @@
         }
 
         function generateMatch() {
-            if (players.length < 4) return alert("人數不足以配對！");
+            if (players.length < 4) return alert("人數不足，無法進行配對！");
             let pool = [...players].sort((a,b) => a.playCount - b.playCount);
             let selectedPool = [];
             let usedNames = new Set();
@@ -215,12 +221,12 @@
                     match.forEach(p => players.find(x => x.name === p.name).playCount++);
                     display.innerHTML += `
                         <div class="court-box">
-                            <div style="color: var(--neon-blue); font-size: 12px; margin-bottom:10px; font-weight:bold;">COURT ${i+1}</div>
+                            <div style="color: var(--neon-blue); font-size: 11px; margin-bottom:10px; font-weight:bold; letter-spacing:1px;">COURT ${i+1}</div>
                             <div class="player-row">
                                 <div class="player-tag lvl-${match[0].level}">${match[0].name}${match[0].pairId?'🔗':''}</div>
                                 <div class="player-tag lvl-${match[1].level}">${match[1].name}${match[1].pairId?'🔗':''}</div>
                             </div>
-                            <div style="color: #555; margin: 4px 0; font-size: 10px;">VS</div>
+                            <div style="color: rgba(255,255,255,0.2); margin: 4px 0; font-size: 10px;">V.S.</div>
                             <div class="player-row">
                                 <div class="player-tag lvl-${match[2].level}">${match[2].name}${match[2].pairId?'🔗':''}</div>
                                 <div class="player-tag lvl-${match[3].level}">${match[3].name}${match[3].pairId?'🔗':''}</div>
@@ -237,7 +243,7 @@
         }
 
         function render() {
-            document.getElementById('countDisplay').innerText = `[ SYSTEM ACTIVE: 載入 ${players.length} 位 ]`;
+            document.getElementById('countDisplay').innerText = `[ SYSTEM ACTIVE: 載入 ${players.length} 位選手 ]`;
             const body = document.getElementById('rankingBody');
             let sorted = [...players].sort((a, b) => b.level - a.level || b.wins - a.wins);
             body.innerHTML = sorted.map(p => `
@@ -245,17 +251,16 @@
                     <td style="font-weight:bold;">${p.name}${p.pairId?'🔗':''}</td>
                     <td class="lvl-${p.level}" style="font-weight:bold;">${lvlNames[p.level]}</td>
                     <td>${p.playCount}</td>
-                    <td class="neon-text">${p.wins}</td>
-                    <td><button onclick="addWin('${p.name}')" style="padding: 6px 10px; font-size:12px; background:rgba(0,242,255,0.2); border:1px solid var(--neon-blue); color:var(--neon-blue);">勝</button></td>
+                    <td class="neon-text" style="font-size:16px;">${p.wins}</td>
+                    <td><button onclick="addWin('${p.name}')" style="padding: 6px 12px; font-size:12px; background:rgba(0,242,255,0.2); border:1px solid var(--neon-blue); color:var(--neon-blue);">贏</button></td>
                 </tr>`).join('');
         }
 
         function addWin(n) { players.find(p => p.name === n).wins++; saveAndRender(); }
-        function clearData() { if(confirm("確定重置數據？")) { players = []; saveAndRender(); } }
+        function clearData() { if(confirm("確定要重置今日所有球員數據嗎？")) { players = []; saveAndRender(); } }
     </script>
 </body>
 </html>
-
 
 
 
